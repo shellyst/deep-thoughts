@@ -36,6 +36,14 @@ const resolvers = {
         .populate("friends")
         .populate("thoughts");
     },
+    Mutation: {
+      // Creates new user in database with whatever is passed in as the args.
+      addUser: async (parent, args) => {
+        const user = await User.create(args);
+        return user;
+      },
+      login: async () => {},
+    },
   },
 };
 
