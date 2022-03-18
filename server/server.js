@@ -16,18 +16,13 @@ const startServer = async () => {
   const server = new ApolloServer({
     typeDefs,
     resolvers,
-    context: authMiddleware,
+    context: authMiddleware
     // Ensures every request performs an authentication check and the updated request object will be passed to the resolvers as the context.
-
-    context: ({ req }) => req.headers,
   });
-
   // Start the Apollo server
   await server.start();
-
   // integrate our Apollo server with the Express application as middleware
   server.applyMiddleware({ app });
-
   // log where we can go to test our GQL API
   console.log(`Use GraphQL at http://localhost:${PORT}${server.graphqlPath}`);
 };
