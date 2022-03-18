@@ -1,4 +1,6 @@
 const { User, Thought } = require("../models");
+const { AuthenticationError } = require("apollo-server-express");
+const { signToken } = require("../utils/auth");
 
 // When we query thoughts, perform a .find() method on the Thought model.
 // Returning thought data in descending order - .sort().
@@ -9,6 +11,19 @@ const resolvers = {
     // If exists: set params to object with username key set to that value.
     // If it doesn't, return an empty object.
     // Pass object to .find() which looks up by specific username.
+    me: async (parent, args, context) => {
+      if (context.user) {
+        const userData = await User.findOne({ _id: context.user._id })
+          .select("-__v -password")
+          .populate("thoughts")
+          .populate("friends");
+
+        return userData;
+      }
+
+      throw new AuthenticationError("Not logged in");
+    },
+
     thoughts: async (parent, { username }) => {
       const params = username ? { username } : {};
       return Thought.find(params).sort({ createdAt: -1 });
@@ -36,13 +51,50 @@ const resolvers = {
         .populate("friends")
         .populate("thoughts");
     },
-    Mutation: {
-      // Creates new user in database with whatever is passed in as the args.
-      addUser: async (parent, args) => {
-        const user = await User.create(args);
-        return user;
-      },
-      login: async () => {},
+  },
+  Mutation: {
+    // Creates new user in database with whatever is passed in as the args.
+    addUser: async (parent, args) => {
+      const user = await User.create(args);
+      const token = signToken(user);
+      return { token, user };
+    },
+    login: async (parent, { email, password }) => {
+      const user = await User.findOne({ email });
+
+      if (!user) {
+        throw new AuthenticationError("Incorrect credentials");
+      }
+
+      const correctPw = await user.isCorrectPassword(password);
+
+      if (!correctPw) {
+        throw new AuthenticationError("Incorrect credentials");
+      }
+
+      const token = signToken(user);
+      return { token, user };
+    },
+
+    addThought: async (parent, args, context) => {
+      // Check for context.user because only logged-in users should be able to use this mutation.
+      if (context.user) {
+        const thought = await Thought.create({
+          ...args,
+          username: context.user.username,
+        });
+
+        await User.findByIdAndUpdate(
+          { _id: context.user._id },
+          { $push: { thoughts: thought._id } },
+          // Returns updated document.
+          { new: true }
+        );
+
+        return thought;
+      }
+
+      throw new AuthenticationError("You need to be logged in!");
     },
   },
 };
