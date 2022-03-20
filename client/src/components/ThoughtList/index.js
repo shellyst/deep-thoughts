@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 
 // Two props: a title and the thoughts array.
 // Destructure argument data to avoid using props.title, props.thought.
@@ -13,19 +14,25 @@ const ThoughtList = ({ thoughts, title }) => {
       <h3>{title}</h3>
       {thoughts &&
         thoughts.map((thought) => (
-          // Key helps React internally track which data needs to be re-rendered if somethinv changes.
           <div key={thought._id} className="card mb-3">
             <p className="card-header">
-              {thought.username}
+              <Link
+                to={`/profile/${thought.username}`}
+                style={{ fontWeight: 700 }}
+                className="text-light"
+              >
+                {thought.username}
+              </Link>{" "}
               thought on {thought.createdAt}
             </p>
             <div className="card-body">
-              <p>{thought.thoughtText}</p>
-              <p className="mb-0">
-                {/* If no reactions, user will start the discussion by adding the first reaction. If reactions, user will view or add their own reaction to an existing list. */}
-                Reactions: {thought.reactionCount} || Click to{" "}
-                {thought.reactionCount ? "see" : "start"} the discussion!
-              </p>
+              <Link to={`/thought/${thought._id}`}>
+                <p>{thought.thoughtText}</p>
+                <p className="mb-0">
+                  Reactions: {thought.reactionCount} || Click to{" "}
+                  {thought.reactionCount ? "see" : "start"} the discussion!
+                </p>
+              </Link>
             </div>
           </div>
         ))}

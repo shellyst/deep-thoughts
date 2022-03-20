@@ -30,8 +30,10 @@ const resolvers = {
     },
 
     // Destructure _id and place it into our .findOne() to look up single thought by its id.
-    thought: async (parent, { _id }) => {
-      return Thought.findOne({ _id });
+    thought: async (parent, { id }) => {
+      const thought = await Thought.findOne({ _id: id });
+
+      return thought;
     },
 
     // get all users
