@@ -1,4 +1,7 @@
 import React, { useState } from "react";
+import { useMutation } from "@apollo/client";
+import { ADD_THOUGHT } from "../../utils/mutations";
+import { QUERY_THOUGHTS, QUERY_ME } from "../../utils/queries";
 
 const ThoughtForm = () => {
   const [thoughtText, setText] = useState("");
@@ -11,16 +14,54 @@ const ThoughtForm = () => {
     }
   };
 
+  // addThought represents a new thought that was just created.
+  // Using the cache object, we can read what's currently saved in the QUERY_THOUGHTS and update it with writeQuery to include the new thought object.
+  const [addThought, { error }] = useMutation(ADD_THOUGHT, {
+    update(cache, { data: { addThought } }) {
+      try {
+        // could potentially not exist yet, so wrap in a try...catch
+        const { thoughts } = cache.readQuery({ query: QUERY_THOUGHTS });
+        cache.writeQuery({
+          query: QUERY_THOUGHTS,
+          data: { thoughts: [addThought, ...thoughts] },
+        });
+      } catch (e) {
+        console.error(e);
+      }
+
+      // update me object's cache, appending new thought to the end of the array
+      const { me } = cache.readQuery({ query: QUERY_ME });
+      cache.writeQuery({
+        query: QUERY_ME,
+        data: { me: { ...me, thoughts: [...me.thoughts, addThought] } },
+      });
+    },
+  });
+
   const handleFormSubmit = async (event) => {
     event.preventDefault();
-    setText("");
-    setCharacterCount(0);
+
+    try {
+      // add thought to database
+      await addThought({
+        variables: { thoughtText },
+      });
+
+      // clear form value
+      setText("");
+      setCharacterCount(0);
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   return (
     <div>
-      <p className={`m-0 ${characterCount === 280 ? "text-error" : ""}`}>
+      <p
+        className={`m-0 ${characterCount === 280 || error ? "text-error" : ""}`}
+      >
         Character Count: {characterCount}/280
+        {error && <span className="ml-2">Something went wrong...</span>}
       </p>
       <form
         className="flex-row justify-center justify-space-between-md align-stretch"
