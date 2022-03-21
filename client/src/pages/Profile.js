@@ -1,27 +1,47 @@
-import { useParams } from "react-router-dom";
+import { Redirect, useParams } from "react-router-dom";
 import ThoughtList from "../components/ThoughtList";
 import { useQuery } from "@apollo/client";
-import { QUERY_USER } from "../utils/queries";
+import { QUERY_USER, QUERY_ME } from "../utils/queries";
 import FriendList from "../components/FriendList";
+import Auth from "../utils/auth";
 
 const Profile = () => {
   const { username: userParam } = useParams();
 
-  const { loading, data } = useQuery(QUERY_USER, {
+  // If value in userParam that we got from the URL, use that value to run the QUERY_USER query.
+  // If no value in userParam then we visit /profile as a logged-in user - execute QUERY_ME.
+  const { loading, data } = useQuery(userParam ? QUERY_USER : QUERY_ME, {
     variables: { username: userParam },
   });
 
-  const user = data?.user || {};
+  const user = data?.me || data?.user || {};
 
   if (loading) {
     return <div>Loading...</div>;
   }
 
+  // redirect to personal profile page if username is the logged-in user's
+  if (Auth.loggedIn() && Auth.getProfile().data.username === userParam) {
+    return <Redirect to="/profile" />;
+  }
+
+  // If no user data to display, know we aren't logged in or at another user's profile page.
+  // Instead of redirecting, we inform them they need to be logged in to see this page and must login/sign up to use it.
+  if (!user?.username) {
+    return (
+      <h4>
+        You need to be logged in to see this page. Use the navigation links
+        above to sign up or log in!
+      </h4>
+    );
+  }
+
   return (
     <div>
       <div className="flex-row mb-3">
+        {/* Viewing your profile if useParam doesn't exist. */}
         <h2 className="bg-dark text-secondary p-3 display-inline-block">
-          Viewing {user.username}'s profile.
+          Viewing {userParam ? `${user.username}'s` : "your"} profile.
         </h2>
       </div>
 

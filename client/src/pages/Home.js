@@ -2,20 +2,29 @@ import React from "react";
 // Will allow us to make requests to the GraphQL server we connected to and made available to application using ApolloProvider component in App.js.
 import { useQuery } from "@apollo/client";
 // Need to use Hook and we'll be able to query thought data.
-import { QUERY_THOUGHTS } from "../utils/queries";
+import { QUERY_THOUGHTS, QUERY_ME_BASIC } from "../utils/queries";
 import ThoughtList from "../components/ThoughtList";
+// To check logged in status of a user.
+import Auth from "../utils/auth";
+import FriendList from "../components/FriendList";
 
 const Home = () => {
   // use useQuery hook to make query request
   // Loading property to indicate request isn't done, when finished and have data returned from server, information is stored in the destructured data property.
   const { loading, data } = useQuery(QUERY_THOUGHTS);
+  // use object destructuring to extract `data` from the `useQuery` Hook's response and rename it `userData` to be more descriptive
+  const { data: userData } = useQuery(QUERY_ME_BASIC);
+
   const thoughts = data?.thoughts || [];
   console.log(thoughts);
+  // If logged in, true.
+  const loggedIn = Auth.loggedIn();
+
   return (
     <main>
       <div className="flex-row justify-space-between">
-        <div className="col-12 mb-3">
-          {/* Use ternary operator to conditionally render the ThoughtList component. */}
+        {/* Conditionally defining layout - if isn't logged in, it spans the full row. If the user is logged in, it'll span eight columns and leave space for a four-column. */}
+        <div className={`col-12 mb-3 ${loggedIn && "col-lg-8"}`}>
           {loading ? (
             <div>Loading...</div>
           ) : (
@@ -25,6 +34,16 @@ const Home = () => {
             />
           )}
         </div>
+        {/* If value is true, and data in userData variable, we'll render a righthand column that holds our FriendList component. */}
+        {loggedIn && userData ? (
+          <div className="col-12 col-lg-3 mb-3">
+            <FriendList
+              username={userData.me.username}
+              friendCount={userData.me.friendCount}
+              friends={userData.me.friends}
+            />
+          </div>
+        ) : null}
       </div>
     </main>
   );
